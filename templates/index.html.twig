@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}Dashboard Statistiques{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+        {% block stylesheets %}
+        
+        <style>
+            .chart-container {
+                background: white;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                width: 100%;
+                height: 400px;
+            }
+            .kpi-card {
+                background: #4e73df;
+                color: white;
+                border-radius: 8px;
+                padding: 20px;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            .kpi-value {
+                font-size: 2.5rem;
+                font-weight: bold;
+            }
+            .chart-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+            .chart-col {
+                flex: 1;
+                min-width: 300px;
+            }
+            
+        </style>
+        {% endblock %}
+
+    </head>
+    <body>
+    {% block body %}
+       
+    <div class="container my-5">
+        <h1 class="mb-4">Dashboard Statistiques</h1>
+        
+        <!-- KPI Card -->
+        <div class="kpi-card">
+            <h3>Revenu Total Annuel</h3>
+            <div class="kpi-value" id="totalAnnuel">€0</div>
+        </div>
+
+        <!-- First Row -->
+        <div class="chart-row">
+            <div class="chart-col">
+                <div class="chart-container">
+                    <h3>Répartition par Plateforme</h3>
+                    <canvas id="plateformeChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-col">
+                <div class="chart-container">
+                    <h3>Répartition par Nationalité</h3>
+                    <canvas id="nationaliteChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Second Row -->
+        <div class="chart-row">
+            <div class="chart-col">
+                <div class="chart-container">
+                    <h3>Revenus par Mois</h3>
+                    <canvas id="moisChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-col">
+                <div class="chart-container">
+                    <h3>Moyenne Prix/Nuit</h3>
+                    <canvas id="moyenneChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+   
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/chart-data')
+                .then(response => response.json())
+                .then(data => {
+                    // Update KPI
+                    document.getElementById('totalAnnuel').textContent = '€' + data.totalAnnuel.toLocaleString();
+
+                    // Doughnut Chart - Plateformes
+                    new Chart(
+                        document.getElementById('plateformeChart'),
+                        {
+                            type: 'doughnut',
+                            data: {
+                                labels: Object.keys(data.plateformes),
+                                datasets: [{
+                                    data: Object.values(data.plateformes),
+                                    backgroundColor: [
+                                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e',
+                                        '#e74a3b', '#858796', '#5a5c69'
+                                    ],
+                                    hoverBorderColor: "#fff"
+                                }]
+                            },
+                            options: {
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'right'
+                                    }
+                                }
+                            }
+                        }
+                    );
+
+                    // Polar Area Chart - Nationalités
+                    new Chart(
+                        document.getElementById('nationaliteChart'),
+                        {
+                            type: 'polarArea',
+                            data: {
+                                labels: Object.keys(data.nationalites),
+                                datasets: [{
+                                    data: Object.values(data.nationalites),
+                                    backgroundColor: [
+                                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e',
+                                        '#e74a3b', '#858796', '#5a5c69'
+                                    ],
+                                    hoverBorderColor: "#fff"
+                                }]
+                            },
+                            options: {
+                                maintainAspectRatio: false
+                            }
+                        }
+                    );
+
+                    // Bar Chart - Revenus par Mois
+                    new Chart(
+                        document.getElementById('moisChart'),
+                        {
+                            type: 'bar',
+                            data: {
+                                labels: Object.keys(data.mois),
+                                datasets: [{
+                                    label: 'Revenus',
+                                    data: Object.values(data.mois),
+                                    backgroundColor: '#4e73df',
+                                    hoverBackgroundColor: '#2e59d9'
+                                }]
+                            },
+                            options: {
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            callback: function(value) {
+                                                return '€' + value.toLocaleString();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    );
+
+                    // Line Chart - Moyenne Prix/Nuit
+                    const moyenneLabels = Object.keys(data.moyennes);
+                    const moyenneValues = Object.values(data.moyennes).map(m => m.value);
+                    
+                    new Chart(
+                        document.getElementById('moyenneChart'),
+                        {
+                            type: 'line',
+                            data: {
+                                labels: moyenneLabels,
+                                datasets: [{
+                                    label: 'Moyenne Prix/Nuit',
+                                    data: moyenneValues,
+                                    borderColor: '#4e73df',
+                                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                                    fill: true,
+                                    tension: 0.3
+                                }]
+                            },
+                            options: {
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        beginAtZero: false,
+                                        ticks: {
+                                            callback: function(value) {
+                                                return '€' + value.toFixed(2);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    );
+                });
+        });
+    </script>
+{% endblock %}
+        
+    </body>
+</html>

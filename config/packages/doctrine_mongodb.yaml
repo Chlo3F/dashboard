@@ -1,0 +1,19 @@
+doctrine_mongodb:
+    connections:
+        default:
+            server: '%env(MONGODB_URL)%'
+            options: 
+              username: '%env(MONGODB_USER)%'
+              password: '%env(MONGODB_PASSWORD)%'
+              authSource: 'admin'
+    default_database: '%env(MONGODB_DB)%'
+    document_managers:
+        default:
+            auto_mapping: true
+            mappings:
+                App:
+                    is_bundle: false
+                    type: attribute
+                    dir: '%kernel.project_dir%/src/Document'
+                    prefix: App\Document
+                    alias: App
