@@ -48,6 +48,71 @@
     <div class="container my-5">
         <h1 class="mb-4">Dashboard Statistiques</h1>
         
+        <div class="container">
+            <h1 class="my-5">Dashboard Statistiques</h1>
+            
+            <!-- Formulaire -->
+            <div class="card mb-5">
+                <div class="card-header">Ajouter des données</div>
+                <div class="card-body">
+                    <form id="addDataForm">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Nationalité</label>
+                                    <input type="text" name="nationalite" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre de personnes</label>
+                                    <input type="number" name="nbrpersonne" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre de nuits</label>
+                                    <input type="number" name="nbrnuit" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Prix de la nuit</label>
+                                    <input type="number" name="prixnuit" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Prix total séjour</label>
+                                    <input type="number" name="prixtotal" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Mois</label>
+                                    <input type="text" name="mois" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Année</label>
+                                    <input type="text" name="annee" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Plateforme</label>
+                                    <input type="text" name="plateforme" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-2 align-self-end">
+                                <button type="submit" class="btn btn-primary">Ajouter</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
         <!-- KPI Card -->
         <div class="kpi-card">
             <h3>Revenu Total Annuel</h3>
@@ -91,6 +156,105 @@
 {% block javascripts %}
    
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+    <script>
+        // Gestion du formulaire
+        document.getElementById('addDataForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                nationalite: this.elements.nationalite.value,
+                nbrpersonne: parseInt(this.elements.nbrpersonne.value),
+                nbrnuit: parseInt(this.elements.nbrnuit.value),
+                prixnuit: parseInt(this.elements.prixnuit.value),
+                prixtotal: parseInt(this.elements.prixtotal.value),
+                mois: this.elements.mois.value,
+                annee: this.elements.annee.value,
+                plateforme: this.elements.plateforme.value
+            };
+
+            fetch('/api/statistiques', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Données ajoutées avec succès!');
+                this.reset();
+                fetchDataAndUpdateCharts(); // Actualise les graphiques
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+
+    <script>
+        // Variables globales pour les graphiques
+        let nationaliteChart, plateformeChart, moisChart;
+
+        function fetchDataAndUpdateCharts() {
+            fetch('/api/chart-data')
+                .then(response => response.json())
+                .then(data => {
+                    updateCharts(data);
+                });
+        }
+
+        function updateCharts(data) {
+            // Mise à jour du graphique par nationalité
+            nationaliteChart.data.labels = Object.keys(data.nationalites);
+            nationaliteChart.data.datasets[0].data = Object.values(data.nationalites);
+            nationaliteChart.update();
+
+            // Mise à jour du graphique par plateforme
+            plateformeChart.data.labels = Object.keys(data.plateformes);
+            plateformeChart.data.datasets[0].data = Object.values(data.plateformes);
+            plateformeChart.update();
+
+            // Mise à jour du graphique par mois
+            moisChart.data.labels = Object.keys(data.mois);
+            moisChart.data.datasets[0].data = Object.values(data.mois);
+            moisChart.update();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialisation des graphiques avec des données vides
+            nationaliteChart = new Chart(
+                document.getElementById('nationaliteChart'),
+                {
+                    type: 'pie',
+                    data: { labels: [], datasets: [{ data: [] }] }
+                }
+            );
+
+            plateformeChart = new Chart(
+                document.getElementById('plateformeChart'),
+                {
+                    type: 'bar',
+                    data: { labels: [], datasets: [{ data: [] }] }
+                }
+            );
+
+            moisChart = new Chart(
+                document.getElementById('moisChart'),
+                {
+                    type: 'line',
+                    data: { labels: [], datasets: [{ data: [] }] }
+                }
+            );
+
+            // Premier chargement des données
+            fetchDataAndUpdateCharts();
+
+            // Optionnel : Actualisation périodique (toutes les 30 secondes)
+          //  setInterval(fetchDataAndUpdateCharts, 30000);
+        });
+    </script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             fetch('/api/chart-data')
